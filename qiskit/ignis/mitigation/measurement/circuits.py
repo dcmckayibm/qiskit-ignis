@@ -22,7 +22,8 @@ from qiskit import QuantumRegister, ClassicalRegister, \
 from ...verification.tomography import count_keys
 
 
-def complete_meas_cal(qubit_list=None, qr=None, cr=None, circlabel=''):
+def complete_meas_cal(qubit_list=None, qr=None, cr=None, circlabel='',
+                      init_state=None):
     """
     Return a list of measurement calibration circuits for the full
     Hilbert space.
@@ -40,6 +41,8 @@ def complete_meas_cal(qubit_list=None, qr=None, cr=None, circlabel=''):
 
         circlabel: A string to add to the front of circuit names for
         unique identification
+
+        init_state: None or a string of 0 and 1's
 
     Returns:
         A list of QuantumCircuit objects containing the calibration circuits
@@ -71,12 +74,13 @@ def complete_meas_cal(qubit_list=None, qr=None, cr=None, circlabel=''):
     state_labels = count_keys(nqubits)
 
     cal_circuits, _ = tensored_meas_cal([qubit_list],
-                                        qr, cr, circlabel)
+                                        qr, cr, circlabel, init_state)
 
     return cal_circuits, state_labels
 
 
-def tensored_meas_cal(mit_pattern=None, qr=None, cr=None, circlabel=''):
+def tensored_meas_cal(mit_pattern=None, qr=None, cr=None, circlabel='',
+                      init_state=None):
     """
     Return a list of calibration circuits
 
@@ -92,6 +96,8 @@ def tensored_meas_cal(mit_pattern=None, qr=None, cr=None, circlabel=''):
 
         circlabel: A string to add to the front of circuit names for
         unique identification
+
+        init_state: None or a string of 0 and 1's
 
     Returns:
         A list of two QuantumCircuit objects containing the calibration
@@ -128,6 +134,9 @@ def tensored_meas_cal(mit_pattern=None, qr=None, cr=None, circlabel=''):
 
     nqubits = len(qubits_in_pattern)
 
+    if init_state is None:
+        init_state = ''.join(['0' for e in range(nqubits)])
+
     # create classical bit registers
     if cr is None:
         cr = ClassicalRegister(nqubits)
@@ -154,8 +163,12 @@ def tensored_meas_cal(mit_pattern=None, qr=None, cr=None, circlabel=''):
 
             start_index = end_index - list_size
             substate = basis_state[start_index:end_index]
+            subinit_state = init_state[start_index:end_index]
 
             for qind in range(list_size):
+                if subinit_state[list_size-qind-1] == '1':
+                    qc_circuit.x(qr[qubit_list[qind]])
+
                 if substate[list_size-qind-1] == '1':
                     qc_circuit.x(qr[qubit_list[qind]])
 
